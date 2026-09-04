@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jadwal Piket & Absensi Kelas Realtime</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+    .header { text-align: center; margin-bottom: 20px; }
+    h1 { color: #2c3e50; margin-bottom: 5px; }
+    .status-online { color: #27ae60; font-size: 0.9em; font-weight: bold; }
+    
+    .filter-container { text-align: center; margin-bottom: 20px; background: white; padding: 12px; border-radius: 8px; max-width: 450px; margin-left: auto; margin-right: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; gap: 10px; justify-content: center; align-items: center; }
+    .filter-container label { font-weight: bold; color: #2c3e50; }
+    
+    .btn-reset { background-color: #27ae60; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85em; transition: 0.2s; }
+    .btn-reset:hover { background-color: #219150; }
+    
+    .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 1400px; margin: 0 auto; }
+    .card-hari { background: white; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.08); width: 100%; max-width: 380px; padding: 20px; }
+    .card-hari h2 { margin-top: 0; color: #3498db; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 15px; }
+    
+    /* STYLING PJ CARD - FIXED & RAPI */
+    .pj-card { background: #f0f7ff; border: 1px solid #b3d7ff; padding: 14px; border-radius: 10px; margin-bottom: 20px; box-shadow: inset 0 0 4px rgba(52, 152, 219, 0.05); }
+    .pj-title { font-weight: bold; color: #1e56a0; font-size: 0.95em; margin-bottom: 10px; display: block; }
+    .pj-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    
+    .piket-list { list-style: none; padding: 0; margin: 0; }
+    .piket-item { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+    .piket-item:last-child { border-bottom: none; }
+    .info-siswa { display: flex; justify-content: space-between; align-items: center; }
+    .nama { font-weight: bold; }
+    .point-badge { font-size: 0.75em; padding: 2px 6px; border-radius: 4px; background-color: #95a5a6; color: white; font-weight: bold; }
+    .form-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+    .select-custom, .input-custom { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.85em; background-color: #fff; outline: none; box-sizing: border-box; }
+    .select-custom:focus, .input-custom:focus { border-color: #3498db; }
+    
+    /* AREA REKAP & TABEL RAPI */
+    .rekap-section { max-width: 1000px; margin: 30px auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .rekap-section h2 { margin-top: 25px; margin-bottom: 12px; color: #2c3e50; font-size: 1.2em; display: flex; align-items: center; gap: 8px; border-left: 4px solid #3498db; padding-left: 10px; }
+    
+    .alfa-box { background-color: #fff5f5; border: 1px solid #feb2b2; padding: 15px; border-radius: 10px; margin-bottom: 25px; }
+    .alfa-box h3 { color: #c53030; margin-top: 0; margin-bottom: 10px; font-size: 1.05em; display: flex; align-items: center; gap: 8px; }
+    .alfa-list { list-style: none; padding: 0; margin: 0; }
+    .alfa-item { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border-left: 4px solid #e74c3c; display: flex; justify-content: space-between; font-weight: bold; font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+
+    /* TABEL RAPI & SIMETRIS */
+    .table-responsive { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88em; }
+    th { background-color: #f8fafc; color: #475569; font-weight: 600; padding: 10px 12px; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+    tr:hover { background-color: #f8fafc; }
+    tr:last-child td { border-bottom: none; }
+
+    .badge-rekap { font-weight: 600; padding: 3px 8px; border-radius: 4px; color: white; font-size: 0.8em; display: inline-block; text-align: center; }
+    .bg-hadir { background-color: #10b981; }
+    .bg-sakit { background-color: #f59e0b; }
+    .bg-izin { background-color: #3b82f6; }
+    .bg-alfa { background-color: #ef4444; }
+    .bg-belum { background-color: #94a3b8; }
+    .input-tukar-pj { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🧹 Jadwal Piket & Absensi Kelas</h1>
+    <span class="status-online">🌐 Terhubung Realtime</span>
+  </div>
+
+  <div class="filter-container">
+    <div>
+      <label for="filter-minggu">📅 Pilih Minggu: </label>
+      <select id="filter-minggu" class="select-custom" style="width: auto; padding: 6px 10px;"></select>
+    </div>
+    <button class="btn-reset" id="btn-reset">➕ Lanjut Minggu Depan</button>
+  </div>
+
+  <div class="container">
+    
+    <div class="card-hari">
+      <h2>Senin</h2>
+      <div class="pj-card">
+        <span class="pj-title">🛡️ PJ Utama: Adikia</span>
+        <div class="pj-grid">
+          <select id="select-status-pj-senin" class="select-custom select-pj-status" data-hari="senin">
+            <option value="hadir_pj">PJ Utama Hadir</option>
+            <option value="tukar_pj">Tukar PJ</option>
+          </select>
+          <input type="text" id="input-tukar-pj-senin" class="input-custom input-tukar-pj" placeholder="Nama PJ pengganti..." data-hari="senin">
+          <div class="form-inputs">
+            <select class="select-custom select-tugas-pj" id="tugas-senin-pj">
+              <option value="Belum pilih tugas">-- Tugas PJ --</option>
+              <option value="Mengawasi Piket">Mengawasi Piket</option>
+              <option value="Menyapu">Menyapu</option>
+              <option value="Mengepel">Mengepel</option>
+              <option value="Hapus papan tulis">Hapus papan tulis</option>
+              <option value="Buang sampah">Buang sampah</option>
+              <option value="Rapikan meja/jendela">Rapikan meja/jendela</option>
+            </select>
+            <select class="select-custom select-status-pj-absen" id="status-senin-pj">
+              <option value="belum">-- Status --</option>
+              <option value="hadir">Hadir</option>
+              <option value="izin">Izin</option>
+              <option value="sakit">Sakit</option>
+              <option value="alfa">Alfa</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <ul class="piket-list">
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Tegar</span><span class="point-badge" id="badge-senin-1">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-senin-1" data-nama="Tegar" data-hari="Senin"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-senin-1" data-nama="Tegar" data-hari="Senin"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Syamil</span><span class="point-badge" id="badge-senin-2">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-senin-2" data-nama="Syamil" data-hari="Senin"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-senin-2" data-nama="Syamil" data-hari="Senin"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Fadli</span><span class="point-badge" id="badge-senin-3">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-senin-3" data-nama="Fadli" data-hari="Senin"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-senin-3" data-nama="Fadli" data-hari="Senin"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Faina</span><span class="point-badge" id="badge-senin-4">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-senin-4" data-nama="Faina" data-hari="Senin"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-senin-4" data-nama="Faina" data-hari="Senin"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Aqila</span><span class="point-badge" id="badge-senin-5">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-senin-5" data-nama="Aqila" data-hari="Senin"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-senin-5" data-nama="Aqila" data-hari="Senin"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Chika</span><span class="point-badge" id="badge-senin-6">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-senin-6" data-nama="Chika" data-hari="Senin"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-senin-6" data-nama="Chika" data-hari="Senin"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+      </ul>
+    </div>
+
+    <div class="card-hari">
+      <h2>Selasa</h2>
+      <div class="pj-card">
+        <span class="pj-title">🛡️ PJ Utama: Latisya</span>
+        <div class="pj-grid">
+          <select id="select-status-pj-selasa" class="select-custom select-pj-status" data-hari="selasa">
+            <option value="hadir_pj">PJ Utama Hadir</option>
+            <option value="tukar_pj">Tukar PJ</option>
+          </select>
+          <input type="text" id="input-tukar-pj-selasa" class="input-custom input-tukar-pj" placeholder="Nama PJ pengganti..." data-hari="selasa">
+          <div class="form-inputs">
+            <select class="select-custom select-tugas-pj" id="tugas-selasa-pj">
+              <option value="Belum pilih tugas">-- Tugas PJ --</option>
+              <option value="Mengawasi Piket">Mengawasi Piket</option>
+              <option value="Menyapu">Menyapu</option>
+              <option value="Mengepel">Mengepel</option>
+              <option value="Hapus papan tulis">Hapus papan tulis</option>
+              <option value="Buang sampah">Buang sampah</option>
+              <option value="Rapikan meja/jendela">Rapikan meja/jendela</option>
+            </select>
+            <select class="select-custom select-status-pj-absen" id="status-selasa-pj">
+              <option value="belum">-- Status --</option>
+              <option value="hadir">Hadir</option>
+              <option value="izin">Izin</option>
+              <option value="sakit">Sakit</option>
+              <option value="alfa">Alfa</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <ul class="piket-list">
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Priscilla</span><span class="point-badge" id="badge-selasa-1">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-selasa-1" data-nama="Priscilla" data-hari="Selasa"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-selasa-1" data-nama="Priscilla" data-hari="Selasa"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Almira</span><span class="point-badge" id="badge-selasa-2">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-selasa-2" data-nama="Almira" data-hari="Selasa"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-selasa-2" data-nama="Almira" data-hari="Selasa"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Dara</span><span class="point-badge" id="badge-selasa-3">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-selasa-3" data-nama="Dara" data-hari="Selasa"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-selasa-3" data-nama="Dara" data-hari="Selasa"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Mutiara</span><span class="point-badge" id="badge-selasa-4">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-selasa-4" data-nama="Mutiara" data-hari="Selasa"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-selasa-4" data-nama="Mutiara" data-hari="Selasa"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Daffa</span><span class="point-badge" id="badge-selasa-5">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-selasa-5" data-nama="Daffa" data-hari="Selasa"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-selasa-5" data-nama="Daffa" data-hari="Selasa"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Adikia</span><span class="point-badge" id="badge-selasa-6">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-selasa-6" data-nama="Adikia" data-hari="Selasa"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-selasa-6" data-nama="Adikia" data-hari="Selasa"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Raqilla</span><span class="point-badge" id="badge-selasa-7">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-selasa-7" data-nama="Raqilla" data-hari="Selasa"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-selasa-7" data-nama="Raqilla" data-hari="Selasa"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+      </ul>
+    </div>
+
+    <div class="card-hari">
+      <h2>Rabu</h2>
+      <div class="pj-card">
+        <span class="pj-title">🛡️ PJ Utama: Adib</span>
+        <div class="pj-grid">
+          <select id="select-status-pj-rabu" class="select-custom select-pj-status" data-hari="rabu">
+            <option value="hadir_pj">PJ Utama Hadir</option>
+            <option value="tukar_pj">Tukar PJ</option>
+          </select>
+          <input type="text" id="input-tukar-pj-rabu" class="input-custom input-tukar-pj" placeholder="Nama PJ pengganti..." data-hari="rabu">
+          <div class="form-inputs">
+            <select class="select-custom select-tugas-pj" id="tugas-rabu-pj">
+              <option value="Belum pilih tugas">-- Tugas PJ --</option>
+              <option value="Mengawasi Piket">Mengawasi Piket</option>
+              <option value="Menyapu">Menyapu</option>
+              <option value="Mengepel">Mengepel</option>
+              <option value="Hapus papan tulis">Hapus papan tulis</option>
+              <option value="Buang sampah">Buang sampah</option>
+              <option value="Rapikan meja/jendela">Rapikan meja/jendela</option>
+            </select>
+            <select class="select-custom select-status-pj-absen" id="status-rabu-pj">
+              <option value="belum">-- Status --</option>
+              <option value="hadir">Hadir</option>
+              <option value="izin">Izin</option>
+              <option value="sakit">Sakit</option>
+              <option value="alfa">Alfa</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <ul class="piket-list">
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Izza S.</span><span class="point-badge" id="badge-rabu-1">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-rabu-1" data-nama="Izza S." data-hari="Rabu"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-rabu-1" data-nama="Izza S." data-hari="Rabu"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Latisya</span><span class="point-badge" id="badge-rabu-2">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-rabu-2" data-nama="Latisya" data-hari="Rabu"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-rabu-2" data-nama="Latisya" data-hari="Rabu"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Nazwa</span><span class="point-badge" id="badge-rabu-3">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-rabu-3" data-nama="Nazwa" data-hari="Rabu"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-rabu-3" data-nama="Nazwa" data-hari="Rabu"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Gavril</span><span class="point-badge" id="badge-rabu-4">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-rabu-4" data-nama="Gavril" data-hari="Rabu"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-rabu-4" data-nama="Gavril" data-hari="Rabu"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Izza G.</span><span class="point-badge" id="badge-rabu-5">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-rabu-5" data-nama="Izza G." data-hari="Rabu"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-rabu-5" data-nama="Izza G." data-hari="Rabu"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Fadhil</span><span class="point-badge" id="badge-rabu-6">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-rabu-6" data-nama="Fadhil" data-hari="Rabu"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-rabu-6" data-nama="Fadhil" data-hari="Rabu"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Kakka</span><span class="point-badge" id="badge-rabu-7">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-rabu-7" data-nama="Kakka" data-hari="Rabu"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-rabu-7" data-nama="Kakka" data-hari="Rabu"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+      </ul>
+    </div>
+
+    <div class="card-hari">
+      <h2>Kamis</h2>
+      <div class="pj-card">
+        <span class="pj-title">🛡️ PJ Utama: Khalifi</span>
+        <div class="pj-grid">
+          <select id="select-status-pj-kamis" class="select-custom select-pj-status" data-hari="kamis">
+            <option value="hadir_pj">PJ Utama Hadir</option>
+            <option value="tukar_pj">Tukar PJ</option>
+          </select>
+          <input type="text" id="input-tukar-pj-kamis" class="input-custom input-tukar-pj" placeholder="Nama PJ pengganti..." data-hari="kamis">
+          <div class="form-inputs">
+            <select class="select-custom select-tugas-pj" id="tugas-kamis-pj">
+              <option value="Belum pilih tugas">-- Tugas PJ --</option>
+              <option value="Mengawasi Piket">Mengawasi Piket</option>
+              <option value="Menyapu">Menyapu</option>
+              <option value="Mengepel">Mengepel</option>
+              <option value="Hapus papan tulis">Hapus papan tulis</option>
+              <option value="Buang sampah">Buang sampah</option>
+              <option value="Rapikan meja/jendela">Rapikan meja/jendela</option>
+            </select>
+            <select class="select-custom select-status-pj-absen" id="status-kamis-pj">
+              <option value="belum">-- Status --</option>
+              <option value="hadir">Hadir</option>
+              <option value="izin">Izin</option>
+              <option value="sakit">Sakit</option>
+              <option value="alfa">Alfa</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <ul class="piket-list">
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Lulla</span><span class="point-badge" id="badge-kamis-1">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-kamis-1" data-nama="Lulla" data-hari="Kamis"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-kamis-1" data-nama="Lulla" data-hari="Kamis"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Tazkia</span><span class="point-badge" id="badge-kamis-2">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-kamis-2" data-nama="Tazkia" data-hari="Kamis"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-kamis-2" data-nama="Tazkia" data-hari="Kamis"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Vianka</span><span class="point-badge" id="badge-kamis-3">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-kamis-3" data-nama="Vianka" data-hari="Kamis"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-kamis-3" data-nama="Vianka" data-hari="Kamis"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Arfa</span><span class="point-badge" id="badge-kamis-4">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-kamis-4" data-nama="Arfa" data-hari="Kamis"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-kamis-4" data-nama="Arfa" data-hari="Kamis"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Zhian</span><span class="point-badge" id="badge-kamis-5">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-kamis-5" data-nama="Zhian" data-hari="Kamis"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-kamis-5" data-nama="Zhian" data-hari="Kamis"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Nizar</span><span class="point-badge" id="badge-kamis-6">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-kamis-6" data-nama="Nizar" data-hari="Kamis"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-kamis-6" data-nama="Nizar" data-hari="Kamis"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+      </ul>
+    </div>
+
+    <div class="card-hari">
+      <h2>Jumat</h2>
+      <div class="pj-card">
+        <span class="pj-title">🛡️ PJ Utama: Izza</span>
+        <div class="pj-grid">
+          <select id="select-status-pj-jumat" class="select-custom select-pj-status" data-hari="jumat">
+            <option value="hadir_pj">PJ Utama Hadir</option>
+            <option value="tukar_pj">Tukar PJ</option>
+          </select>
+          <input type="text" id="input-tukar-pj-jumat" class="input-custom input-tukar-pj" placeholder="Nama PJ pengganti..." data-hari="jumat">
+          <div class="form-inputs">
+            <select class="select-custom select-tugas-pj" id="tugas-jumat-pj">
+              <option value="Belum pilih tugas">-- Tugas PJ --</option>
+              <option value="Mengawasi Piket">Mengawasi Piket</option>
+              <option value="Menyapu">Menyapu</option>
+              <option value="Mengepel">Mengepel</option>
+              <option value="Hapus papan tulis">Hapus papan tulis</option>
+              <option value="Buang sampah">Buang sampah</option>
+              <option value="Rapikan meja/jendela">Rapikan meja/jendela</option>
+            </select>
+            <select class="select-custom select-status-pj-absen" id="status-jumat-pj">
+              <option value="belum">-- Status --</option>
+              <option value="hadir">Hadir</option>
+              <option value="izin">Izin</option>
+              <option value="sakit">Sakit</option>
+              <option value="alfa">Alfa</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <ul class="piket-list">
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Zanetta</span><span class="point-badge" id="badge-jumat-1">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-jumat-1" data-nama="Zanetta" data-hari="Jumat"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-jumat-1" data-nama="Zanetta" data-hari="Jumat"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Akayla</span><span class="point-badge" id="badge-jumat-2">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-jumat-2" data-nama="Akayla" data-hari="Jumat"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-jumat-2" data-nama="Akayla" data-hari="Jumat"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Razita</span><span class="point-badge" id="badge-jumat-3">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-jumat-3" data-nama="Razita" data-hari="Jumat"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-jumat-3" data-nama="Razita" data-hari="Jumat"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Khalifi</span><span class="point-badge" id="badge-jumat-4">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-jumat-4" data-nama="Khalifi" data-hari="Jumat"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-jumat-4" data-nama="Khalifi" data-hari="Jumat"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Adib</span><span class="point-badge" id="badge-jumat-5">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-jumat-5" data-nama="Adib" data-hari="Jumat"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-jumat-5" data-nama="Adib" data-hari="Jumat"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+        <li class="piket-item"><div class="info-siswa"><span class="nama">Nokeu</span><span class="point-badge" id="badge-jumat-6">Belum Absen</span></div><div class="form-inputs"><select class="select-custom select-tugas" id="tugas-jumat-6" data-nama="Nokeu" data-hari="Jumat"><option value="Belum pilih tugas">-- Pilih Tugas --</option><option value="Menyapu">Menyapu</option><option value="Mengepel">Mengepel</option><option value="Hapus papan tulis">Hapus papan tulis</option><option value="Buang sampah">Buang sampah</option><option value="Rapikan meja/jendela">Rapikan meja/jendela</option></select><select class="select-custom select-status" id="status-jumat-6" data-nama="Nokeu" data-hari="Jumat"><option value="belum">-- Status --</option><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alfa">Alfa</option></select></div></li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="rekap-section">
+    <div class="alfa-box">
+      <h3>🚨 Daftar Siswa Alfa Minggu Ini (Perlu Hukuman)</h3>
+      <ul class="alfa-list" id="daftar-alfa-minggu-ini">
+        <li style="color: #666; font-style: italic;">Memuat data...</li>
+      </ul>
+    </div>
+
+    <h2>🛡️ Status Monitoring Penanggung Jawab (PJ) Hari Ini</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 15%;">Hari</th>
+            <th style="width: 35%;">PJ Bertugas</th>
+            <th style="width: 30%;">Tugas PJ</th>
+            <th style="width: 20%;">Kehadiran</th>
+          </tr>
+        </thead>
+        <tbody id="tabel-laporan-pj"></tbody>
+      </table>
+    </div>
+
+    <h2>📋 Laporan Tugas & Poin Siswa Minggu Ini</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 8%;">No</th>
+            <th style="width: 27%;">Nama Siswa</th>
+            <th style="width: 15%;">Hari</th>
+            <th style="width: 25%;">Tugas Dikerjakan</th>
+            <th style="width: 15%;">Status</th>
+            <th style="width: 10%; text-align: right;">Poin</th>
+          </tr>
+        </thead>
+        <tbody id="tabel-laporan-individu"></tbody>
+      </table>
+    </div>
+
+    <h2>🏆 Total Poin Kumulatif (Keseluruhan Minggu)</h2>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 10%;">No</th>
+            <th style="width: 60%;">Nama Siswa</th>
+            <th style="width: 30%; text-align: right;">Total Poin Kumulatif</th>
+          </tr>
+        </thead>
+        <tbody id="tabel-total-kumulatif"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBMm8Cmeaz8xlZ7XRcW_HT0-5cXj743V1k",
+      authDomain: "piket-kelas-1db72.firebaseapp.com",
+      databaseURL: "https://piket-kelas-1db72-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "piket-kelas-1db72",
+      storageBucket: "piket-kelas-1db72.firebasestorage.app",
+      messagingSenderId: "79502379607",
+      appId: "1:79502379607:web:562b840b733b51bd593112"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const daftarHari = ['senin', 'selasa', 'rabu', 'kamis', 'jumat'];
+    const pjUtamaDefault = {
+      senin: 'Adikia',
+      selasa: 'Latisya',
+      rabu: 'Adib',
+      kamis: 'Khalifi',
+      jumat: 'Izza'
+    };
+
+    let activeWeekKey = `Minggu_Ke_1`;
+
+    const filterMinggu = document.getElementById('filter-minggu');
+    const selectStatusElements = document.querySelectorAll('.select-status');
+    const selectTugasElements = document.querySelectorAll('.select-tugas');
+    const selectPjStatusElements = document.querySelectorAll('.select-status-pj-absen');
+    const selectPjTugasElements = document.querySelectorAll('.select-tugas-pj');
+
+    let currentUnsubscribe = null;
+
+    function initWeekDropdown() {
+      get(ref(db, 'piket_v4')).then((snapshot) => {
+        filterMinggu.innerHTML = '';
+        const data = snapshot.val() || {};
+        let keys = Object.keys(data);
+
+        if (keys.length === 0) {
+          keys = [activeWeekKey];
+        }
+
+        keys.sort();
+
+        keys.forEach((weekKey, index) => {
+          const option = document.createElement('option');
+          option.value = weekKey;
+          option.innerText = `Minggu Ke-${index + 1}`;
+          filterMinggu.appendChild(option);
+        });
+
+        filterMinggu.value = activeWeekKey;
+        loadWeekData(activeWeekKey);
+      });
+    }
+
+    function loadWeekData(weekKey) {
+      if (currentUnsubscribe) currentUnsubscribe();
+
+      const dbRef = ref(db, 'piket_v4/' + weekKey);
+      currentUnsubscribe = onValue(dbRef, (snapshot) => {
+        const data = snapshot.val() || {};
+
+        selectStatusElements.forEach(select => {
+          select.value = data[select.id] || 'belum';
+          updateUI(select);
+        });
+
+        selectTugasElements.forEach(select => {
+          select.value = data[select.id] || 'Belum pilih tugas';
+        });
+
+        selectPjStatusElements.forEach(select => {
+          select.value = data[select.id] || 'belum';
+        });
+
+        selectPjTugasElements.forEach(select => {
+          select.value = data[select.id] || 'Belum pilih tugas';
+        });
+
+        daftarHari.forEach(hari => {
+          const selectStatusPj = document.getElementById(`select-status-pj-${hari}`);
+          const inputTukarPj = document.getElementById(`input-tukar-pj-${hari}`);
+
+          if (selectStatusPj) {
+            const statusPjVal = data[`status_pj_${hari}`] || 'hadir_pj';
+            selectStatusPj.value = statusPjVal;
+
+            if (inputTukarPj) {
+              inputTukarPj.value = data[`nama_tukar_pj_${hari}`] || '';
+              inputTukarPj.style.display = (statusPjVal === 'tukar_pj') ? 'block' : 'none';
+            }
+          }
+        });
+
+        generateRekap(data);
+        generateTotalKumulatif();
+      });
+    }
+
+    initWeekDropdown();
+
+    filterMinggu.addEventListener('change', (e) => {
+      activeWeekKey = e.target.value;
+      loadWeekData(activeWeekKey);
+    });
+
+    document.querySelectorAll('.select-pj-status').forEach(select => {
+      select.addEventListener('change', (e) => {
+        const hari = e.target.getAttribute('data-hari');
+        const inputTukar = document.getElementById(`input-tukar-pj-${hari}`);
+        
+        if (e.target.value === 'tukar_pj') {
+          inputTukar.style.display = 'block';
+        } else {
+          inputTukar.style.display = 'none';
+          set(ref(db, `piket_v4/${activeWeekKey}/nama_tukar_pj_${hari}`), "");
+        }
+
+        set(ref(db, `piket_v4/${activeWeekKey}/status_pj_${hari}`), e.target.value);
+      });
+    });
+
+    document.querySelectorAll('.input-tukar-pj').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const hari = e.target.getAttribute('data-hari');
+        set(ref(db, `piket_v4/${activeWeekKey}/nama_tukar_pj_${hari}`), e.target.value);
+      });
+    });
+
+    selectStatusElements.forEach(select => {
+      select.addEventListener('change', () => {
+        set(ref(db, `piket_v4/${activeWeekKey}/${select.id}`), select.value);
+        updateUI(select);
+      });
+    });
+
+    selectTugasElements.forEach(select => {
+      select.addEventListener('change', () => {
+        set(ref(db, `piket_v4/${activeWeekKey}/${select.id}`), select.value);
+      });
+    });
+
+    selectPjStatusElements.forEach(select => {
+      select.addEventListener('change', () => {
+        set(ref(db, `piket_v4/${activeWeekKey}/${select.id}`), select.value);
+      });
+    });
+
+    selectPjTugasElements.forEach(select => {
+      select.addEventListener('change', () => {
+        set(ref(db, `piket_v4/${activeWeekKey}/${select.id}`), select.value);
+      });
+    });
+
+    function updateUI(select) {
+      const badgeId = select.id.replace('status-', 'badge-');
+      const badge = document.getElementById(badgeId);
+      if (!badge) return;
+
+      if (select.value === 'hadir') badge.innerText = "+10 Pt";
+      else if (select.value === 'izin') badge.innerText = "+5 Pt";
+      else if (select.value === 'sakit') badge.innerText = "+3 Pt";
+      else if (select.value === 'alfa') badge.innerText = "0 Pt";
+      else badge.innerText = "Belum Absen";
+    }
+
+    function renderBadgeStatus(status) {
+      if (status === 'hadir') return '<span class="badge-rekap bg-hadir">Hadir (+10)</span>';
+      if (status === 'izin') return '<span class="badge-rekap bg-izin">Izin (+5)</span>';
+      if (status === 'sakit') return '<span class="badge-rekap bg-sakit">Sakit (+3)</span>';
+      if (status === 'alfa') return '<span class="badge-rekap bg-alfa">Alfa (0)</span>';
+      return '<span class="badge-rekap bg-belum">Belum Absen</span>';
+    }
+
+    function generateRekap(data) {
+      const tbodyIndividu = document.getElementById('tabel-laporan-individu');
+      const tbodyPj = document.getElementById('tabel-laporan-pj');
+      const containerAlfa = document.getElementById('daftar-alfa-minggu-ini');
+
+      if (tbodyIndividu) tbodyIndividu.innerHTML = '';
+      if (tbodyPj) tbodyPj.innerHTML = '';
+      if (containerAlfa) containerAlfa.innerHTML = '';
+
+      let listAlfa = [];
+
+      // 1. REKAP MONITORING PJ
+      daftarHari.forEach(hari => {
+        const modePj = data[`status_pj_${hari}`] || 'hadir_pj';
+        const namaPengganti = data[`nama_tukar_pj_${hari}`] || '';
+        const tugasPj = data[`tugas-${hari}-pj`] || 'Belum pilih tugas';
+        const statusAbsenPj = data[`status-${hari}-pj`] || 'belum';
+
+        let namaPjAktif = pjUtamaDefault[hari];
+        if (modePj === 'tukar_pj') {
+          namaPjAktif = namaPengganti ? `${namaPengganti} (Pengganti ${pjUtamaDefault[hari]})` : `[Belum Diisi] (Pengganti ${pjUtamaDefault[hari]})`;
+        }
+
+        if (tbodyPj) {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="font-weight: bold; text-transform: capitalize;">${hari}</td>
+            <td style="font-weight: 600; color: #1e56a0;">${namaPjAktif}</td>
+            <td>${tugasPj}</td>
+            <td>${renderBadgeStatus(statusAbsenPj)}</td>
+          `;
+          tbodyPj.appendChild(row);
+        }
+      });
+
+      // 2. REKAP LAPORAN INDIVIDU SISWA
+      selectStatusElements.forEach((selectStatus, index) => {
+        const namaSiswa = selectStatus.getAttribute('data-nama') || `Siswa ${index + 1}`;
+        const hariPiket = selectStatus.getAttribute('data-hari') || 'Piket';
+        const tugasId = selectStatus.id.replace('status-', 'tugas-');
+        const selectTugas = document.getElementById(tugasId);
+        const tugasDikerjakan = (selectTugas && selectTugas.value !== 'Belum pilih tugas') ? selectTugas.value : '-';
+
+        const status = selectStatus.value;
+        let poin = 0;
+
+        if (status === 'hadir') poin = 10;
+        else if (status === 'izin') poin = 5;
+        else if (status === 'sakit') poin = 3;
+        else if (status === 'alfa') { 
+          poin = 0; 
+          listAlfa.push({ nama: namaSiswa, hari: hariPiket });
+        }
+
+        if (tbodyIndividu) {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="color: #64748b;">${index + 1}</td>
+            <td style="font-weight: 600; color: #1e293b;">${namaSiswa}</td>
+            <td><span style="font-weight: 500; color: #475569;">${hariPiket}</span></td>
+            <td>${tugasDikerjakan}</td>
+            <td>${renderBadgeStatus(status)}</td>
+            <td style="font-weight: 700; color: #0284c7; text-align: right;">${poin} Pt</td>
+          `;
+          tbodyIndividu.appendChild(row);
+        }
+      });
+
+      // 3. DAFTAR ALFA
+      if (containerAlfa) {
+        if (listAlfa.length === 0) {
+          containerAlfa.innerHTML = '<li style="color: #10b981; font-weight: 600;">✅ Aman! Tidak ada siswa yang Alfa minggu ini.</li>';
+        } else {
+          listAlfa.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'alfa-item';
+            li.innerHTML = `<span>👤 ${item.nama}</span> <span style="color: #ef4444;">(Piket Hari ${item.hari})</span>`;
+            containerAlfa.appendChild(li);
+          });
+        }
+      }
+    }
+
+    // HITUNG TOTAL POIN KUMULATIF
+    function generateTotalKumulatif() {
+      get(ref(db, 'piket_v4')).then((snapshot) => {
+        const allData = snapshot.val() || {};
+        let totalPoinSiswa = {};
+
+        selectStatusElements.forEach(select => {
+          const namaSiswa = select.getAttribute('data-nama');
+          totalPoinSiswa[namaSiswa] = 0;
+        });
+
+        Object.keys(allData).forEach(weekKey => {
+          const weekData = allData[weekKey];
+          selectStatusElements.forEach(select => {
+            const namaSiswa = select.getAttribute('data-nama');
+            const statusVal = weekData[select.id];
+
+            if (statusVal === 'hadir') totalPoinSiswa[namaSiswa] += 10;
+            else if (statusVal === 'izin') totalPoinSiswa[namaSiswa] += 5;
+            else if (statusVal === 'sakit') totalPoinSiswa[namaSiswa] += 3;
+          });
+        });
+
+        const tbodyKumulatif = document.getElementById('tabel-total-kumulatif');
+        if (tbodyKumulatif) {
+          tbodyKumulatif.innerHTML = '';
+          let index = 1;
+          for (const [nama, totalPoin] of Object.entries(totalPoinSiswa)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td style="color: #64748b;">${index++}</td>
+              <td style="font-weight: 600; color: #1e293b;">${nama}</td>
+              <td style="font-weight: 700; color: #10b981; text-align: right;">${totalPoin} Pt</td>
+            `;
+            tbodyKumulatif.appendChild(row);
+          }
+        }
+      });
+    }
+
+    document.getElementById('btn-reset')?.addEventListener('click', () => {
+      get(ref(db, 'piket_v4')).then((snapshot) => {
+        const data = snapshot.val() || {};
+        const count = Object.keys(data).length + 1;
+        const newWeekKey = `Minggu_Ke_${count}`;
+
+        set(ref(db, `piket_v4/${newWeekKey}/created_at`), new Date().toISOString()).then(() => {
+          activeWeekKey = newWeekKey;
+          initWeekDropdown();
+          alert(`Berhasil membuka sesi: Minggu Ke-${count}`);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
