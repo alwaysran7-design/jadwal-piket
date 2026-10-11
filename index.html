@@ -9,6 +9,7 @@
     body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
     .header { text-align: center; margin-bottom: 20px; }
     h1 { color: #2c3e50; margin-bottom: 5px; }
+    .wali-kelas { color: #555; font-size: 0.95em; margin-bottom: 5px; font-weight: 500; }
     .status-online { color: #27ae60; font-size: 0.9em; font-weight: bold; }
     
     .filter-container { text-align: center; margin-bottom: 20px; background: white; padding: 12px; border-radius: 8px; max-width: 500px; margin-left: auto; margin-right: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; gap: 10px; justify-content: center; align-items: center; }
@@ -51,6 +52,13 @@
     .alfa-list { list-style: none; padding: 0; margin: 0; }
     .alfa-item { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; border-left: 4px solid #e74c3c; display: flex; justify-content: space-between; font-weight: bold; font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 
+    .leaderboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+    @media (max-width: 768px) { .leaderboard-grid { grid-template-columns: 1fr; } }
+    .lb-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; }
+    .lb-card h3 { margin-top: 0; font-size: 1em; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .lb-list { list-style: none; padding: 0; margin: 0; }
+    .lb-item { background: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 5px; display: flex; justify-content: space-between; font-size: 0.9em; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+
     .table-responsive { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
     table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88em; }
     th { background-color: #f8fafc; color: #475569; font-weight: 600; padding: 10px 12px; border-bottom: 2px solid #e2e8f0; }
@@ -70,6 +78,7 @@
 
   <div class="header">
     <h1>🧹 Jadwal Piket & Absensi Kelas</h1>
+    <div class="wali-kelas">👨‍🏫 Wali Kelas: Roies Saban Fauzi</div>
     <span class="status-online">🌐 Terhubung Realtime</span>
   </div>
 
@@ -268,6 +277,22 @@
       </ul>
     </div>
 
+    <!-- LEADERBOARD SISWA TERAJIN & JARANG PIKET -->
+    <div class="leaderboard-grid">
+      <div class="lb-card">
+        <h3 style="color: #10b981;">🏆 Top 3 Siswa Terajin</h3>
+        <ul class="lb-list" id="top-rajin">
+          <li style="color: #666; font-style: italic;">Memuat data...</li>
+        </ul>
+      </div>
+      <div class="lb-card">
+        <h3 style="color: #ef4444;">⚠️ Top 3 Siswa Jarang Piket</h3>
+        <ul class="lb-list" id="top-jarang">
+          <li style="color: #666; font-style: italic;">Memuat data...</li>
+        </ul>
+      </div>
+    </div>
+
     <h2>🛡️ Status Monitoring Penanggung Jawab (PJ) Hari Ini</h2>
     <div class="table-responsive">
       <table>
@@ -341,8 +366,7 @@
       jumat: 'Izza'
     };
 
-    // MASTER JADWAL LAMA (Minggu 1 - 4)
-    const anggotaLama = {
+    const anggotaMinggu1_4 = {
       senin: ["Tegar", "Syamil", "Fadli", "Faina", "Aqila", "Chika"],
       selasa: ["Priscilla", "Almira", "Dara", "Mutiara", "Daffa", "Adikia", "Raqilla"],
       rabu: ["Izza S.", "Latisya", "Nazwa", "Gavril", "Izza G.", "Fadhil", "Kakka"],
@@ -350,8 +374,7 @@
       jumat: ["Zanetta", "Akayla", "Razita", "Khalifi", "Adib", "Nokeu"]
     };
 
-    // MASTER JADWAL BARU (Minggu 5 dan seterusnya)
-    const anggotaBaru = {
+    const anggotaMinggu5_6 = {
       senin: ["Tegar", "Syamil", "Fadli", "Faina", "Aqila", "Razita 🔄"],
       selasa: ["Priscilla", "Almira", "Dara", "Mutiara", "Daffa", "Adikia", "Raqilla"],
       rabu: ["Izza S.", "Latisya", "Nazwa", "Gavril", "Izza G.", "Fadhil", "Kakka"],
@@ -359,14 +382,27 @@
       jumat: ["Zanetta", "Akayla", "Chika 🔄", "Khalifi", "Adib", "Nokeu"]
     };
 
-    let activeWeekKey = `Minggu_Ke_5`;
+    const anggotaMinggu7_dst = {
+      senin: ["Tegar", "Syamil", "Fadli", "Faina", "Aqila", "Razita 🔄"],
+      selasa: ["Priscilla", "Almira", "Chika 🔄", "Mutiara", "Daffa", "Adikia", "Raqilla"],
+      rabu: ["Izza S.", "Latisya", "Nazwa", "Gavril", "Izza G.", "Fadhil", "Kakka"],
+      kamis: ["Lulla", "Tazkia", "Vianka", "Arfa", "Zhian", "Nizar"],
+      jumat: ["Zanetta", "Akayla", "Dara 🔄", "Khalifi", "Adib", "Nokeu"]
+    };
+
+    function getJadwalByWeek(weekNum) {
+      if (weekNum < 5) return anggotaMinggu1_4;
+      if (weekNum < 7) return anggotaMinggu5_6;
+      return anggotaMinggu7_dst;
+    }
+
+    let activeWeekKey = `Minggu_Ke_7`; // Default sementara sebelum data dimuat dari DB
 
     const filterMinggu = document.getElementById('filter-minggu');
     let currentUnsubscribe = null;
 
     function renderDOMStructure(weekNum) {
-      // Jika minggu < 5 pakai jadwal lama, jika >= 5 pakai jadwal baru
-      const dataJadwal = (weekNum < 5) ? anggotaLama : anggotaBaru;
+      const dataJadwal = getJadwalByWeek(weekNum);
 
       daftarHari.forEach(hari => {
         const ul = document.getElementById(`list-${hari}`);
@@ -433,12 +469,17 @@
         const data = snapshot.val() || {};
         let keys = Object.keys(data);
 
-        const defaultKeys = ['Minggu_Ke_1', 'Minggu_Ke_2', 'Minggu_Ke_3', 'Minggu_Ke_4', 'Minggu_Ke_5'];
+        const defaultKeys = ['Minggu_Ke_1', 'Minggu_Ke_2', 'Minggu_Ke_3', 'Minggu_Ke_4', 'Minggu_Ke_5', 'Minggu_Ke_6', 'Minggu_Ke_7'];
         defaultKeys.forEach(k => {
           if (!keys.includes(k)) keys.push(k);
         });
 
-        keys.sort();
+        // Urutkan minggu berdasarkan nomor angkanya dengan benar (1, 2, ..., 10, dst)
+        keys.sort((a, b) => {
+          let numA = parseInt(a.replace('Minggu_Ke_', '')) || 0;
+          let numB = parseInt(b.replace('Minggu_Ke_', '')) || 0;
+          return numA - numB;
+        });
 
         keys.forEach((weekKey) => {
           const weekNum = weekKey.replace('Minggu_Ke_', '');
@@ -447,6 +488,11 @@
           option.innerText = `Minggu Ke-${weekNum}`;
           filterMinggu.appendChild(option);
         });
+
+        // Otomatis pilih minggu paling akhir/terbaru yang ada di database atau default ke yang terakhir di list
+        if (keys.length > 0) {
+          activeWeekKey = keys[keys.length - 1];
+        }
 
         filterMinggu.value = activeWeekKey;
         loadWeekData(activeWeekKey);
@@ -633,6 +679,9 @@
           listAlfa.push({ nama: namaSiswa, hari: hariPiket });
         }
 
+        let bonusPoin = arrTugas.length >= 2 ? arrTugas.length - 1 : 0;
+        let totalPoinMingguIni = poin + bonusPoin;
+
         if (tbodyIndividu) {
           const row = document.createElement('tr');
           row.innerHTML = `
@@ -641,7 +690,7 @@
             <td><span style="font-weight: 500; color: #475569;">${hariPiket}</span></td>
             <td>${tugasDikerjakan}</td>
             <td>${renderBadgeStatus(status)}</td>
-            <td style="font-weight: 700; color: #0284c7; text-align: right;">${poin} Pt</td>
+            <td style="font-weight: 700; color: #0284c7; text-align: right;">${totalPoinMingguIni} Pt</td>
           `;
           tbodyIndividu.appendChild(row);
         }
@@ -666,9 +715,8 @@
         const allData = snapshot.val() || {};
         let totalPoinSiswa = {};
 
-        // Ambil daftar nama lengkap seluruh siswa
         const allSiswaNames = [
-          ...anggotaLama.senin, ...anggotaLama.selasa, ...anggotaLama.rabu, ...anggotaLama.kamis, ...anggotaLama.jumat
+          ...anggotaMinggu1_4.senin, ...anggotaMinggu1_4.selasa, ...anggotaMinggu1_4.rabu, ...anggotaMinggu1_4.kamis, ...anggotaMinggu1_4.jumat
         ].map(n => n.replace(' 🔄', ''));
 
         allSiswaNames.forEach(nama => {
@@ -678,26 +726,36 @@
         Object.keys(allData).forEach(weekKey => {
           const weekData = allData[weekKey];
           const weekNum = parseInt(weekKey.replace('Minggu_Ke_', '')) || 1;
-          const mapJadwal = (weekNum < 5) ? anggotaLama : anggotaBaru;
+          const mapJadwal = getJadwalByWeek(weekNum);
 
           daftarHari.forEach(hari => {
             mapJadwal[hari].forEach((nama, idx) => {
               const cleanNama = nama.replace(' 🔄', '');
               const id = `${hari}-${idx + 1}`;
               const statusVal = weekData[`status-${id}`];
+              const arrTugas = weekData[`tugas_list_${id}`] || [];
 
-              if (statusVal === 'hadir') totalPoinSiswa[cleanNama] += 10;
-              else if (statusVal === 'izin') totalPoinSiswa[cleanNama] += 5;
-              else if (statusVal === 'sakit') totalPoinSiswa[cleanNama] += 3;
+              let poin = 0;
+              if (statusVal === 'hadir') poin = 10;
+              else if (statusVal === 'izin') poin = 5;
+              else if (statusVal === 'sakit') poin = 3;
+
+              let bonusPoin = arrTugas.length >= 2 ? arrTugas.length - 1 : 0;
+
+              if (totalPoinSiswa[cleanNama] !== undefined) {
+                totalPoinSiswa[cleanNama] += (poin + bonusPoin);
+              }
             });
           });
         });
+
+        const sortedSiswa = Object.entries(totalPoinSiswa).sort((a, b) => b[1] - a[1]);
 
         const tbodyKumulatif = document.getElementById('tabel-total-kumulatif');
         if (tbodyKumulatif) {
           tbodyKumulatif.innerHTML = '';
           let index = 1;
-          for (const [nama, totalPoin] of Object.entries(totalPoinSiswa)) {
+          sortedSiswa.forEach(([nama, totalPoin]) => {
             const row = document.createElement('tr');
             row.innerHTML = `
               <td style="color: #64748b;">${index++}</td>
@@ -705,7 +763,32 @@
               <td style="font-weight: 700; color: #10b981; text-align: right;">${totalPoin} Pt</td>
             `;
             tbodyKumulatif.appendChild(row);
-          }
+          });
+        }
+
+        const topRajinEl = document.getElementById('top-rajin');
+        const topJarangEl = document.getElementById('top-jarang');
+
+        if (topRajinEl && topJarangEl) {
+          topRajinEl.innerHTML = '';
+          topJarangEl.innerHTML = '';
+
+          const top3 = sortedSiswa.slice(0, 3);
+          top3.forEach(([nama, poin], i) => {
+            const li = document.createElement('li');
+            li.className = 'lb-item';
+            li.innerHTML = `<span>${i + 1}. ${nama}</span> <span style="color: #10b981;">${poin} Pt</span>`;
+            topRajinEl.appendChild(li);
+          });
+
+          const filteredSorted = [...sortedSiswa].sort((a, b) => a[1] - b[1]);
+          const bottom3 = filteredSorted.slice(0, 3);
+          bottom3.forEach(([nama, poin], i) => {
+            const li = document.createElement('li');
+            li.className = 'lb-item';
+            li.innerHTML = `<span>${i + 1}. ${nama}</span> <span style="color: #ef4444;">${poin} Pt</span>`;
+            topJarangEl.appendChild(li);
+          });
         }
       });
     }
@@ -720,7 +803,7 @@
           if (num > maxWeekNum) maxWeekNum = num;
         });
 
-        if (maxWeekNum < 5) maxWeekNum = 5;
+        if (maxWeekNum < 7) maxWeekNum = 7;
         const nextWeekNum = maxWeekNum + 1;
         const newWeekKey = `Minggu_Ke_${nextWeekNum}`;
 
